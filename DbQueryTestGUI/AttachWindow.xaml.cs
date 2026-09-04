@@ -101,7 +101,14 @@ namespace DbQueryTestGUI
                     // Подтягиваем подразделения и пытаемся найти сохраненное subdiv из истории
                     if (!string.IsNullOrEmpty(currentLpu))
                     {
-                        string subQuery = "SELECT subdiv FROM HISTLPU WHERE pid = @id AND lpu = @lpu ORDER BY rowid DESC LIMIT 1;";
+                        string subQuery = @"
+                            SELECT subdiv
+                            FROM HISTLPU
+                            WHERE pid = @id
+                              AND lpu = @lpu
+                              AND (lpudx IS NULL OR lpudx = '')
+                            ORDER BY id DESC
+                            LIMIT 1;"; 
                         using var subCmd = new SqliteCommand(subQuery, connection);
                         subCmd.Parameters.AddWithValue("@id", _personId);
                         subCmd.Parameters.AddWithValue("@lpu", currentLpu);

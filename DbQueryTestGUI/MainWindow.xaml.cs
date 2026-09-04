@@ -264,7 +264,15 @@ namespace DbQueryTestGUI
                         t7.name_depth AS district_name
                     FROM PEOPLE pe
                     LEFT JOIN LPU l ON l.code = pe.lpu
-                    LEFT JOIN HISTLPU h ON h.pid = pe.id AND (h.lpudx IS NULL OR h.lpudx = '')
+                    LEFT JOIN HISTLPU h ON h.id = (
+                        SELECT latest.id
+                        FROM HISTLPU latest
+                        WHERE latest.pid = pe.id
+                          AND latest.lpu = pe.lpu
+                          AND (latest.lpudx IS NULL OR latest.lpudx = '')
+                        ORDER BY latest.id DESC
+                        LIMIT 1
+                    )
                     LEFT JOIN T001 t1 ON t1.mcod = pe.lpu AND t1.nom_podr = h.subdiv
                     LEFT JOIN T007 t7 ON t7.code_mo = pe.lpu AND t7.nom_podr = h.subdiv AND t7.depth = COALESCE(h.district, pe.lpuuch)
                     WHERE pe.id = @pid
