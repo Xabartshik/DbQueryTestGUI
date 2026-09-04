@@ -148,9 +148,6 @@ namespace DbQueryTestGUI
 
             try
             {
-                using var connection = new SqliteConnection(GetConnectionString());
-                connection.Open();
-
                 List<PersonModel> foundPersons;
 
                 if (isPolicySearch)
@@ -179,44 +176,8 @@ namespace DbQueryTestGUI
                 {
                     resultMessage += $"{p.Fam} {p.Im} {p.Ot}, {p.Dr} (ЕНП: {(string.IsNullOrEmpty(p.Enp) ? "нет" : p.Enp)})\n";
 
-                    if (string.IsNullOrEmpty(p.Lpu) || !string.IsNullOrEmpty(p.Lpudx))
-                    {
-                        resultMessage += " Статус: Не прикреплён.\n\n";
-                        continue;
-                    }
-
-                    string detailsQuery = @"
-                SELECT 
-                    l.caption AS lpu_name,
-                    t1.nam_mo AS subdiv_name,
-                    t7.name_depth AS district_name
-                FROM LPU l
-                LEFT JOIN HISTLPU h ON h.pid = @pid AND (h.lpudx IS NULL OR h.lpudx = '')
-                LEFT JOIN T001 t1 ON t1.mcod = l.code AND t1.nom_podr = h.subdiv
-                LEFT JOIN T007 t7 ON t7.code_mo = l.code AND t7.nom_podr = h.subdiv AND t7.depth = h.district
-                WHERE l.code = @lpuCode
-                LIMIT 1;";
-
-                    using var cmd = new SqliteCommand(detailsQuery, connection);
-                    cmd.Parameters.AddWithValue("@pid", p.Id);
-                    cmd.Parameters.AddWithValue("@lpuCode", p.Lpu);
-
-                    using var reader = cmd.ExecuteReader();
-                    if (reader.Read())
-                    {
-                        string lpuName = reader.IsDBNull(0) ? p.Lpu : reader.GetString(0);
-                        string subdivName = reader.IsDBNull(1) ? null : reader.GetString(1);
-                        string districtName = reader.IsDBNull(2) ? null : reader.GetString(2);
-
-                        resultMessage += $" Прикреплен к: {lpuName}";
-                        if (!string.IsNullOrEmpty(subdivName)) resultMessage += $", {subdivName}";
-                        if (!string.IsNullOrEmpty(districtName)) resultMessage += $", {districtName}";
-                        resultMessage += "\n\n";
-                    }
-                    else
-                    {
-                        resultMessage += $" Прикреплен к МО (код: {p.Lpu})\n\n";
-                    }
+                    var attachment = AttachmentService.GetCurrent(_dbPath, p.Id);
+                    resultMessage += $" Статус: {FormatAttachment(attachment)}\n\n";
                 }
 
                 MessageBox.Show(resultMessage.Trim(), "Результаты проверки прикрепления", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -246,66 +207,25 @@ namespace DbQueryTestGUI
 
             string personHeader = $"{p.Fam} {p.Im} {p.Ot}".Trim() + $", {p.Dr}";
 
-            if (string.IsNullOrEmpty(p.Lpu) || !string.IsNullOrEmpty(p.Lpudx))
-            {
-                TxtAttachmentStatus.Text = $"{personHeader} – не прикреплён";
-                return;
-            }
-
             try
             {
-                using var connection = new SqliteConnection(GetConnectionString());
-                connection.Open();
-
-                string detailsQuery = @"
-                    SELECT 
-                        l.caption AS lpu_name,
-                        t1.nam_mo AS subdiv_name,
-                        t7.name_depth AS district_name
-                    FROM PEOPLE pe
-                    LEFT JOIN LPU l ON l.code = pe.lpu
-                    LEFT JOIN HISTLPU h ON h.pid = pe.id AND (h.lpudx IS NULL OR h.lpudx = '')
-                    LEFT JOIN T001 t1 ON t1.mcod = pe.lpu AND t1.nom_podr = h.subdiv
-                    LEFT JOIN T007 t7 ON t7.code_mo = pe.lpu AND t7.nom_podr = h.subdiv AND t7.depth = COALESCE(h.district, pe.lpuuch)
-                    WHERE pe.id = @pid
-                    LIMIT 1;";
-
-                using var cmd = new SqliteCommand(detailsQuery, connection);
-                cmd.Parameters.AddWithValue("@pid", p.Id);
-
-                using var reader = cmd.ExecuteReader();
-                if (reader.Read())
-                {
-                    string lpuName = reader.IsDBNull(0) ? "Неизвестная МО" : reader.GetString(0);
-                    string subdivName = reader.IsDBNull(1) ? null : reader.GetString(1);
-                    string districtName = reader.IsDBNull(2) ? null : reader.GetString(2);
-
-                    if (!string.IsNullOrEmpty(subdivName) && !string.IsNullOrEmpty(districtName))
-                    {
-                        TxtAttachmentStatus.Text = $"{personHeader} – прикреплен к {lpuName}, {subdivName.ToLower()}, {districtName.ToLower()}";
-                    }
-                    else if (!string.IsNullOrEmpty(districtName))
-                    {
-                        TxtAttachmentStatus.Text = $"{personHeader} – прикреплен к {lpuName}, участок: {districtName.ToLower()}";
-                    }
-                    else if (!string.IsNullOrEmpty(subdivName))
-                    {
-                        TxtAttachmentStatus.Text = $"{personHeader} – прикреплен к {lpuName}, {subdivName.ToLower()} (нет участка)";
-                    }
-                    else
-                    {
-                        TxtAttachmentStatus.Text = $"{personHeader} – прикреплен к {lpuName} (нет участка)";
-                    }
-                }
-                else
-                {
-                    TxtAttachmentStatus.Text = $"{personHeader} – прикреплен к МО (код: {p.Lpu}), детали отсутствуют";
-                }
+                TxtAttachmentStatus.Text = $"{personHeader} – {FormatAttachment(AttachmentService.GetCurrent(_dbPath, p.Id))}";
             }
             catch (Exception ex)
             {
                 TxtAttachmentStatus.Text = $"Ошибка расчета прикрепления: {ex.Message}";
             }
+        }
+
+        private static string FormatAttachment(AttachmentService.AttachmentInfo attachment)
+        {
+            if (!attachment.IsAttached) return "не прикреплён";
+
+            string lpu = attachment.LpuName ?? $"МО (код: {attachment.LpuCode})";
+            var details = new List<string>();
+            if (!string.IsNullOrWhiteSpace(attachment.SubdivName)) details.Add(attachment.SubdivName);
+            if (!string.IsNullOrWhiteSpace(attachment.DistrictName)) details.Add(attachment.DistrictName);
+            return details.Count == 0 ? $"прикреплён к {lpu}" : $"прикреплён к {lpu}, {string.Join(", ", details)}";
         }
         private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
@@ -382,11 +302,19 @@ namespace DbQueryTestGUI
             {
                 using var connection = new SqliteConnection(GetConnectionString());
                 connection.Open();
+                using var transaction = connection.BeginTransaction();
 
-                string deleteQuery = "DELETE FROM PEOPLE WHERE id = @id;";
-                using var cmd = new SqliteCommand(deleteQuery, connection);
-                cmd.Parameters.AddWithValue("@id", selectedPerson.Id);
-                cmd.ExecuteNonQuery();
+                using (var historyCommand = new SqliteCommand("DELETE FROM HISTLPU WHERE pid = @id;", connection, transaction))
+                {
+                    historyCommand.Parameters.AddWithValue("@id", selectedPerson.Id);
+                    historyCommand.ExecuteNonQuery();
+                }
+                using (var personCommand = new SqliteCommand("DELETE FROM PEOPLE WHERE id = @id;", connection, transaction))
+                {
+                    personCommand.Parameters.AddWithValue("@id", selectedPerson.Id);
+                    personCommand.ExecuteNonQuery();
+                }
+                transaction.Commit();
 
                 LoadData();
                 TxtAttachmentStatus.Text = "Запись успешно удалена.";

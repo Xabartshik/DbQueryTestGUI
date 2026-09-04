@@ -70,53 +70,27 @@ namespace DbQueryTestGUI
         {
             try
             {
-                using var connection = new SqliteConnection(GetConnectionString());
-                connection.Open();
+                var current = AttachmentService.GetCurrent(_dbPath, _personId);
+                string currentLpu = current.LpuCode;
+                TxtLpuDt.Text = current.AttachmentDate ?? DateTime.Today.ToString("dd.MM.yyyy");
+                TxtLpuDx.Text = current.DetachmentDate ?? string.Empty;
 
-                string query = "SELECT lpu, lpudt, lpudx, lpuuch FROM PEOPLE WHERE id = @id;";
-                using var cmd = new SqliteCommand(query, connection);
-                cmd.Parameters.AddWithValue("@id", _personId);
-
-                using var reader = cmd.ExecuteReader();
-                if (reader.Read())
+                if (!string.IsNullOrEmpty(currentLpu))
                 {
-                    string currentLpu = reader.IsDBNull(0) ? null : reader.GetString(0);
-                    TxtLpuDt.Text = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
-                    TxtLpuDx.Text = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
-                    string currentDistrict = reader.IsDBNull(3) ? null : reader.GetString(3);
-
-                    // Устанавливаем LPU
-                    if (!string.IsNullOrEmpty(currentLpu))
+                    // Устанавливаем LPU.
+                    foreach (ComboBoxItemModel item in CmbLpu.Items)
                     {
-                        foreach (ComboBoxItemModel item in CmbLpu.Items)
+                        if (item.Code == currentLpu)
                         {
-                            if (item.Code == currentLpu)
-                            {
-                                CmbLpu.SelectedItem = item;
-                                break;
-                            }
+                            CmbLpu.SelectedItem = item;
+                            break;
                         }
                     }
 
-                    // Подтягиваем подразделения и пытаемся найти сохраненное subdiv из истории
-                    if (!string.IsNullOrEmpty(currentLpu))
+                    LoadSubdivList(currentLpu, current.SubdivCode);
+                    if (!string.IsNullOrEmpty(current.SubdivCode))
                     {
-                        string subQuery = "SELECT subdiv FROM HISTLPU WHERE pid = @id AND lpu = @lpu ORDER BY rowid DESC LIMIT 1;";
-                        using var subCmd = new SqliteCommand(subQuery, connection);
-                        subCmd.Parameters.AddWithValue("@id", _personId);
-                        subCmd.Parameters.AddWithValue("@lpu", currentLpu);
-                        var subResult = subCmd.ExecuteScalar();
-
-                        if (subResult != null && subResult != DBNull.Value)
-                        {
-                            string currentSubdiv = subResult.ToString();
-                            LoadSubdivList(currentLpu, currentSubdiv);
-
-                            if (!string.IsNullOrEmpty(currentSubdiv))
-                            {
-                                LoadDistrictList(currentLpu, currentSubdiv, currentDistrict);
-                            }
-                        }
+                        LoadDistrictList(currentLpu, current.SubdivCode, current.DistrictCode);
                     }
                 }
             }
@@ -242,42 +216,7 @@ namespace DbQueryTestGUI
                 string lpudt = string.IsNullOrWhiteSpace(TxtLpuDt.Text) ? null : TxtLpuDt.Text.Trim();
                 string lpudx = string.IsNullOrWhiteSpace(TxtLpuDx.Text) ? null : TxtLpuDx.Text.Trim();
 
-                using var connection = new SqliteConnection(GetConnectionString());
-                connection.Open();
-                using var transaction = connection.BeginTransaction();
-
-                // 1. Обновляем основную таблицу PEOPLE
-                string updatePeopleQuery = @"
-                    UPDATE PEOPLE 
-                    SET lpu = @lpu, lpudt = @lpudt, lpudx = @lpudx, lpuuch = @lpuuch 
-                    WHERE id = @id;";
-
-                using var cmdPeople = new SqliteCommand(updatePeopleQuery, connection, transaction);
-                cmdPeople.Parameters.AddWithValue("@lpu", (object)lpu ?? DBNull.Value);
-                cmdPeople.Parameters.AddWithValue("@lpudt", (object)lpudt ?? DBNull.Value);
-                cmdPeople.Parameters.AddWithValue("@lpudx", (object)lpudx ?? DBNull.Value);
-                cmdPeople.Parameters.AddWithValue("@lpuuch", (object)district ?? DBNull.Value);
-                cmdPeople.Parameters.AddWithValue("@id", _personId);
-                cmdPeople.ExecuteNonQuery();
-
-                // 2. Добавляем запись в историю HISTLPU при наличии LPU
-                if (!string.IsNullOrEmpty(lpu))
-                {
-                    string historyQuery = @"
-                        INSERT INTO HISTLPU (pid, lpu, lpudt, lpudx, district, subdiv) 
-                        VALUES (@pid, @lpu, @lpudt, @lpudx, @district, @subdiv);";
-
-                    using var cmdHist = new SqliteCommand(historyQuery, connection, transaction);
-                    cmdHist.Parameters.AddWithValue("@pid", _personId);
-                    cmdHist.Parameters.AddWithValue("@lpu", lpu);
-                    cmdHist.Parameters.AddWithValue("@lpudt", (object)lpudt ?? DBNull.Value);
-                    cmdHist.Parameters.AddWithValue("@lpudx", (object)lpudx ?? DBNull.Value);
-                    cmdHist.Parameters.AddWithValue("@district", (object)district ?? DBNull.Value);
-                    cmdHist.Parameters.AddWithValue("@subdiv", (object)subdiv ?? DBNull.Value);
-                    cmdHist.ExecuteNonQuery();
-                }
-
-                transaction.Commit();
+                AttachmentService.SaveCurrent(_dbPath, _personId, lpu, subdiv, district, lpudt, lpudx);
 
                 DialogResult = true;
                 Close();
