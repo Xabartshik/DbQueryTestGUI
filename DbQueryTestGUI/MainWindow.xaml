@@ -1,0 +1,239 @@
+﻿<Window x:Class="DbQueryTestGUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Менеджер прикреплений ОМС (SQLite + WPF)" 
+        Height="720" Width="1240" MinWidth="850" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="#2B2D31" Foreground="#DBDEE1"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="BgDark" Color="#1E1F22"/>
+        <SolidColorBrush x:Key="BgMedium" Color="#2B2D31"/>
+        <SolidColorBrush x:Key="BgLight" Color="#313338"/>
+        <SolidColorBrush x:Key="BgInput" Color="#383A40"/>
+
+        <SolidColorBrush x:Key="BrandBlurple" Color="#5865F2"/>
+        <SolidColorBrush x:Key="BrandBlurpleHover" Color="#4752C4"/>
+        <SolidColorBrush x:Key="BrandBlurpleActive" Color="#3C45A5"/>
+
+        <SolidColorBrush x:Key="TextNormal" Color="#DBDEE1"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#949BA4"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#1F2023"/>
+
+        <Style TargetType="GroupBox">
+            <Setter Property="Background" Value="{StaticResource BgLight}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource TextNormal}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="8">
+                            <Grid Margin="12">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="{TemplateBinding Header}" 
+                                           FontWeight="Bold" 
+                                           FontSize="13" 
+                                           Foreground="{StaticResource TextMuted}" 
+                                           Margin="0,0,0,8"/>
+                                <ContentPresenter Grid.Row="1"/>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource BgInput}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextNormal}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="CaretBrush" Value="{StaticResource TextNormal}"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="1" CornerRadius="4">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BrandBlurple}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DiscordButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource BrandBlurple}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BrandBlurpleHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource BrandBlurpleActive}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#4E5058"/>
+                                <Setter Property="Foreground" Value="#80848E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DiscordDangerButton" TargetType="Button" BasedOn="{StaticResource DiscordButton}">
+            <Setter Property="Background" Value="#CD2626"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E03131"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DiscordSecondaryButton" TargetType="Button" BasedOn="{StaticResource DiscordButton}">
+            <Setter Property="Background" Value="#4E5058"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#6D6F78"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{StaticResource BgDark}"/>
+            <Setter Property="RowBackground" Value="{StaticResource BgDark}"/>
+            <Setter Property="AlternatingRowBackground" Value="{StaticResource BgLight}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextNormal}"/>
+            <Setter Property="GridLinesVisibility" Value="None"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource BgLight}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+        </Style>
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Padding="{TemplateBinding Padding}" Focusable="False" Background="{TemplateBinding Background}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BrandBlurple}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Header="Управление и поиск" Grid.Row="0" Margin="0,0,0,12" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
+                    <TextBlock Text="Поиск (ФИО / ЕНП):" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource TextNormal}"/>
+                    <TextBox x:Name="TxtSearch" Width="280" TextChanged="TxtSearch_TextChanged"/>
+                    <Button Content="Найти" Style="{StaticResource DiscordButton}" Margin="8,0,0,0" Click="BtnSearch_Click" Width="80"/>
+                    <Button Content="Сбросить" Style="{StaticResource DiscordSecondaryButton}" Margin="4,0,0,0" Click="BtnResetSearch_Click" Width="80"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right">
+                    <Button Content="Добавить запись" Style="{StaticResource DiscordButton}" Click="BtnAdd_Click" Margin="0,0,8,0"/>
+                    <Button Content="Проверить прикрепление" Style="{StaticResource DiscordSecondaryButton}" Click="BtnCheckAttachment_Click" Margin="8,0,10,0"/>
+                    <Button Content="Прикрепление..." Style="{StaticResource DiscordSecondaryButton}" Click="BtnManageAttachment_Click" Margin="0,0,8,0"/>
+                    <Button Content="Удалить" Style="{StaticResource DiscordDangerButton}" Click="BtnDelete_Click"/>
+                </StackPanel>
+
+                <Border Grid.Row="1" Grid.ColumnSpan="2" Background="{StaticResource BgInput}" CornerRadius="4" Padding="10" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Статус прикрепления выбранного пациента: " FontWeight="Bold" Foreground="{StaticResource TextMuted}"/>
+                        <TextBlock x:Name="TxtAttachmentStatus" Text="Выберите запись в таблице..." Foreground="{StaticResource BrandBlurple}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </GroupBox>
+
+        <Border Grid.Row="1" Background="{StaticResource BgDark}" CornerRadius="8" Padding="4">
+            <DataGrid x:Name="DgPeople" SelectionChanged="DgPeople_SelectionChanged">
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Копировать ячейку" Click="MenuCopyCell_Click"/>
+                        <MenuItem Header="Копировать всю строку" Click="MenuCopyRow_Click"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                    <DataGridTextColumn Header="Фамилия" Binding="{Binding Fam}" Width="120"/>
+                    <DataGridTextColumn Header="Имя" Binding="{Binding Im}" Width="120"/>
+                    <DataGridTextColumn Header="Отчество" Binding="{Binding Ot}" Width="120"/>
+                    <DataGridTextColumn Header="Дата рождения" Binding="{Binding Dr}" Width="100"/>
+                    <DataGridTextColumn Header="ЕНП (Полис)" Binding="{Binding Enp}" Width="150"/>
+                    <DataGridTextColumn Header="Код МО (LPU)" Binding="{Binding Lpu}" Width="100"/>
+                    <DataGridTextColumn Header="Код открепления" Binding="{Binding Lpudx}" Width="110"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <StatusBar Grid.Row="2" Margin="0,12,0,0" Background="Transparent" Foreground="{StaticResource TextMuted}">
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Всего записей в базе: " Margin="0,0,4,0"/>
+                    <TextBlock x:Name="TxtCount" Text="0" FontWeight="Bold" Foreground="{StaticResource TextNormal}"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

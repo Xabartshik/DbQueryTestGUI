@@ -1,0 +1,39 @@
+﻿<Window x:Class="DbQueryTestGUI.AttachWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Управление прикреплением пациента" Height="540" Width="440"
+        WindowStartupLocation="CenterOwner"
+        Background="#2B2D31" Foreground="#DBDEE1" FontFamily="Segoe UI" ResizeMode="NoResize">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Информация о пациенте -->
+        <TextBlock x:Name="TxtPersonInfo" FontWeight="Bold" FontSize="14" Foreground="#5865F2" Margin="0,0,0,12"/>
+
+        <StackPanel Grid.Row="1">
+            <TextBlock Text="Медицинская организация (LPU):" Foreground="#949BA4" Margin="0,0,0,4"/>
+            <ComboBox x:Name="CmbLpu" DisplayMemberPath="Name" SelectedValuePath="Code" SelectionChanged="CmbLpu_SelectionChanged" Height="28" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Подразделение (subdiv):" Foreground="#949BA4" Margin="0,0,0,4"/>
+            <ComboBox x:Name="CmbSubdiv" DisplayMemberPath="Name" SelectedValuePath="Code" SelectionChanged="CmbSubdiv_SelectionChanged" Height="28" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Участок (lpuuch / district):" Foreground="#949BA4" Margin="0,0,0,4"/>
+            <ComboBox x:Name="CmbDistrict" DisplayMemberPath="Name" SelectedValuePath="Code" Height="28" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Дата прикрепления (ДД.ММ.ГГГГ):" Foreground="#949BA4" Margin="0,0,0,4"/>
+            <TextBox x:Name="TxtLpuDt" Height="26" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Дата открепления (заполняется для открепления):" Foreground="#949BA4" Margin="0,0,0,4"/>
+            <TextBox x:Name="TxtLpuDx" Height="26"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Отмена" Width="80" Height="30" Click="BtnCancel_Click" Background="#4E5058" Foreground="White" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0"/>
+            <Button Content="Сохранить" Width="90" Height="30" Click="BtnSave_Click" Background="#5865F2" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>
